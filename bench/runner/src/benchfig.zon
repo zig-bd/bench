@@ -6,7 +6,7 @@
     .rate = 1000000,
     .port = 8081,
     .timeout_s = 2,
-    .frameworks = .{ "zap", "httpz", "zzz", "dusty-std", "dusty-zio", "std" },
+    .frameworks = .{ "zap", "httpz", "zzz", "dusty-std", "dusty-zio", "std", "uwebzockets" },
     .scenarios = .{
         .{
             .id = "plaintext",

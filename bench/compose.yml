@@ -63,6 +63,17 @@ services:
         BINARY: bench_std
     healthcheck: *healthcheck
 
+  uwebzockets:
+    <<: *framework
+    image: zig_web_bench-uwebzockets
+    build:
+      context: ..
+      dockerfile: frameworks/Dockerfile
+      args:
+        FRAMEWORK: uwebzockets
+        BINARY: bench_uwebzockets
+    healthcheck: *healthcheck
+
   zap:
     <<: *framework
     image: zig_web_bench-zap
