@@ -2,11 +2,11 @@
     .name = .web_bencher,
     .version = "0.1.0",
     .fingerprint = 0xde07366e993ce898,
-    .minimum_zig_version = "0.17.0-dev.2131+d08989840",
+    .minimum_zig_version = "0.17.0",
     .dependencies = .{
         .ziex = .{
-            .url = "git+https://github.com/ziex-dev/ziex#030ae03f531cf24943ede1ab7e337c58455d7d89",
-            .hash = "ziex-0.1.0-dev-Z3YcvXfCmwG7l7nGY0oqd1CoOCUGcYV7gVKU3xfjZHHk",
+            .url = "git+https://github.com/ziex-dev/ziex#f076c2677ed51f8c8c40ea8df462e7e2f50c9b3b",
+            .hash = "ziex-0.1.0-dev-Z3YcvWJFnAHPmLzi3GGPglGvORTfjSscHNIFdYoqyZ_Z",
         },
     },
     .paths = .{

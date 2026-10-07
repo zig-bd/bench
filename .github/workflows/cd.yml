@@ -47,7 +47,7 @@ jobs:
       - name: Setup Zig
         uses: mlugg/setup-zig@v2
         with:
-          version: 0.17.0-dev.2131+d08989840
+          version: 0.17.0
           cache-size-limit: 0
           use-tool-cache: true
 

@@ -78,5 +78,12 @@ pub fn readResultsFile(allocator: std.mem.Allocator, io: std.Io) ![:0]u8 {
 }
 
 pub fn parseResults(allocator: std.mem.Allocator, source: [:0]const u8) !Result {
-    return std.zon.parse.fromSliceAlloc(Result, allocator, source, null, .{ .ignore_unknown_fields = true });
+    var diagnostics: std.zon.parse.Diagnostics = undefined;
+    return std.zon.parse.fromSlice(Result, .{
+        .gpa = allocator,
+        .arena = allocator,
+        .source = source,
+        .diagnostics = &diagnostics,
+        .ignore_unknown_fields = true,
+    });
 }

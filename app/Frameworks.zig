@@ -78,7 +78,12 @@ pub fn load(allocator: std.mem.Allocator, io: Io) !Frameworks {
         const zon_path = try std.fs.path.join(allocator, &.{ frameworks_dir, name, "build.zig.zon" });
         const raw = readFile(allocator, io, zon_path) catch continue;
 
-        const parsed = try std.zon.parse.fromSliceAlloc(PackageFile, allocator, raw, null, .{
+        var diagnostics: std.zon.parse.Diagnostics = undefined;
+        const parsed = try std.zon.parse.fromSlice(PackageFile, .{
+            .gpa = allocator,
+            .arena = allocator,
+            .source = raw,
+            .diagnostics = &diagnostics,
             .ignore_unknown_fields = true,
         });
         const meta = parsed.meta orelse continue;
