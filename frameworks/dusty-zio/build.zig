@@ -29,7 +29,6 @@ pub fn build(b: *std.Build) void {
     const dusty_dep = b.dependency("dusty", .{
         .target = target,
         .optimize = optimize,
-        .use_tls = false,
     });
     // Prefer zio's AutoCancel timeouts over dusty's portable std.Io stub.
     const dusty_mod = dusty_dep.module("dusty");

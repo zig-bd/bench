@@ -5,8 +5,8 @@
     .minimum_zig_version = "0.16.0",
     .dependencies = .{
         .dusty = .{
-            .url = "git+https://github.com/lalinsky/dusty#v0.3.0",
-            .hash = "dusty-0.3.0-Qdw7RuMmIADEfIvweBs3lT1-8DL2W0iR4V3PlYrkeiX2",
+            .url = "git+https://github.com/lalinsky/dusty?ref=v0.6.0#102b0c76eee2ed9c0ea3fff199473a7d731eb258",
+            .hash = "dusty-0.6.0-Qdw7RhVxJgA6uMKSP4-Ll-7uj8fkY7BJQ9VcRFMAFVk0",
         },
     },
     .paths = .{

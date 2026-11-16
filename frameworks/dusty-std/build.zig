@@ -25,7 +25,6 @@ pub fn build(b: *std.Build) void {
     const dusty = b.dependency("dusty", .{
         .target = target,
         .optimize = optimize,
-        .use_tls = false,
     });
     exe.root_module.addImport("dusty", dusty.module("dusty"));
     b.installArtifact(exe);

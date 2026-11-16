@@ -9,12 +9,15 @@ pub fn main(init: std.process.Init) !void {
     });
     defer threaded.deinit();
 
+    const listeners = [_]http.Listener{.{
+        .address = .{ .ip = try std.Io.net.IpAddress.parse("0.0.0.0", shared_mod.port) },
+        .reuse_address = true,
+        .kernel_backlog = shared_mod.connection_count,
+    }};
+
     var server = http.Server(void).init(init.gpa, threaded.io(), .{
         .max_connections = shared_mod.connection_count,
-        .listen = .{
-            .reuse_address = true,
-            .kernel_backlog = shared_mod.connection_count,
-        },
+        .listeners = &listeners,
         .timeout = .{
             .request = null,
             .keepalive = null,
@@ -27,11 +30,8 @@ pub fn main(init: std.process.Init) !void {
     server.router.get("/api/users", users);
     server.router.get("/api/users/:id", user);
 
-    const addr: http.Address = .{
-        .ip = try std.Io.net.IpAddress.parse("0.0.0.0", shared_mod.port),
-    };
     std.debug.print("Started on port {d}\n", .{shared_mod.port});
-    try server.listen(addr);
+    try server.run();
 }
 
 fn root(_: *http.Request, res: *http.Response) !void {
