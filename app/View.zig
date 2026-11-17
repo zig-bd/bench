@@ -12,7 +12,7 @@ pub const FeatureCell = Frameworks.FeatureCell;
 pub const FrameworkMeta = struct {
     /// Folder / results id (e.g. `dusty-std`).
     id: []const u8,
-    /// UI label (e.g. `dusty+std`).
+    /// UI label (e.g. `dusty`).
     name: []const u8,
     version: []const u8,
     version_label: []const u8,

@@ -15,7 +15,7 @@
         "main.zig",
     },
     .meta = .{
-        .label = "dusty+std",
+        .label = "dusty",
         .version = "0.6.0",
         .repo_url = "https://github.com/lalinsky/dusty",
         .comparison = .{

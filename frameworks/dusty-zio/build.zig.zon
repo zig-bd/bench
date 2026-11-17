@@ -19,7 +19,7 @@
         "main.zig",
     },
     .meta = .{
-        .label = "dusty+zio",
+        .label = "dusty/zio",
         .version = "0.6.0",
         .repo_url = "https://github.com/lalinsky/dusty",
         .privileged = true,

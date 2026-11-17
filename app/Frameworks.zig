@@ -27,7 +27,7 @@ pub const Category = struct {
 pub const Framework = struct {
     /// Folder / docker / results id (e.g. `dusty-std`).
     name: []const u8 = "",
-    /// UI label (e.g. `dusty+std`); defaults to `name`.
+    /// UI label (e.g. `dusty`); defaults to `name`.
     label: []const u8 = "",
     version: []const u8 = "",
     repo_url: []const u8 = "",
