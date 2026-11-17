@@ -82,7 +82,7 @@ fn mainInner(init: std.process.Init) !void {
 
     std.log.info("bencher starting; frameworks={d} scenarios={d} platform={s} out={s}", .{
         frameworks.len,
-        @typeInfo(@TypeOf(fig.scenarios)).@"struct".fields.len,
+        @typeInfo(@TypeOf(fig.scenarios)).@"struct".field_names.len,
         platform_id,
         out_path,
     });
@@ -101,8 +101,8 @@ fn mainInner(init: std.process.Init) !void {
     var results: std.ArrayList(ScenarioResult) = .empty;
     defer results.deinit(gpa);
 
-    inline for (@typeInfo(@TypeOf(fig.scenarios)).@"struct".fields) |field| {
-        const scenario = @field(fig.scenarios, field.name);
+    inline for (@typeInfo(@TypeOf(fig.scenarios)).@"struct".field_names) |field_name| {
+        const scenario = @field(fig.scenarios, field_name);
         const scenario_wanted: bool = blk: {
             const sf = scenario_filter orelse break :blk true;
             for (sf) |id| {
@@ -277,7 +277,14 @@ fn writePartial(gpa: std.mem.Allocator, io: Io, environ_map: *std.process.Enviro
 
     // Keep prior scenarios for this framework+platform when a later run covers only a subset.
     if (Io.Dir.cwd().readFileAllocOptions(io, path, arena, .limited(1024 * 1024), .of(u8), 0)) |existing| {
-        const parsed = try std.zon.parse.fromSliceAlloc(PartialFile, arena, existing, null, .{ .ignore_unknown_fields = true });
+        var diagnostics: std.zon.parse.Diagnostics = undefined;
+        const parsed = try std.zon.parse.fromSlice(PartialFile, .{
+            .gpa = gpa,
+            .arena = arena,
+            .source = existing,
+            .diagnostics = &diagnostics,
+            .ignore_unknown_fields = true,
+        });
         for (parsed.runs) |r| {
             var replaced = false;
             for (fresh) |f| {
@@ -315,13 +322,20 @@ fn mergeFromSidecar(gpa: std.mem.Allocator, io: Io, environ_map: *std.process.En
     defer arena_state.deinit();
     const arena = arena_state.allocator();
 
-    inline for (@typeInfo(@TypeOf(fig.frameworks)).@"struct".fields) |field| {
-        const name = @field(fig.frameworks, field.name);
+    inline for (@typeInfo(@TypeOf(fig.frameworks)).@"struct".field_names) |field_name| {
+        const name = @field(fig.frameworks, field_name);
         for (known_platforms) |pl| {
             const path = try partialPath(gpa, out_path, name, pl.id);
             defer gpa.free(path);
             const raw = Io.Dir.cwd().readFileAllocOptions(io, path, arena, .limited(1024 * 1024), .of(u8), 0) catch continue;
-            const parsed = try std.zon.parse.fromSliceAlloc(PartialFile, arena, raw, null, .{ .ignore_unknown_fields = true });
+            var diagnostics: std.zon.parse.Diagnostics = undefined;
+            const parsed = try std.zon.parse.fromSlice(PartialFile, .{
+                .gpa = gpa,
+                .arena = arena,
+                .source = raw,
+                .diagnostics = &diagnostics,
+                .ignore_unknown_fields = true,
+            });
             for (parsed.runs) |r| {
                 try results.append(gpa, .{
                     .framework = try gpa.dupe(u8, r.framework),
@@ -350,10 +364,10 @@ fn mergeFromSidecar(gpa: std.mem.Allocator, io: Io, environ_map: *std.process.En
 }
 
 fn listFrameworks(gpa: std.mem.Allocator) ![]const []const u8 {
-    const n = @typeInfo(@TypeOf(fig.frameworks)).@"struct".fields.len;
+    const n = @typeInfo(@TypeOf(fig.frameworks)).@"struct".field_names.len;
     const out = try gpa.alloc([]const u8, n);
-    inline for (@typeInfo(@TypeOf(fig.frameworks)).@"struct".fields, 0..) |field, i| {
-        out[i] = @field(fig.frameworks, field.name);
+    inline for (@typeInfo(@TypeOf(fig.frameworks)).@"struct".field_names, 0..) |field_name, i| {
+        out[i] = @field(fig.frameworks, field_name);
     }
     return out;
 }
@@ -490,7 +504,7 @@ fn runOnce(gpa: std.mem.Allocator, io: Io, host: []const u8, path: []const u8, m
         .url = try zrk.cli.parseUrl(url_str),
     };
 
-    const report = try zrk.runner.run(arena, io, &cfg, 0, null, null);
+    const report = try zrk.runner.run(arena, io, &cfg, 0, null, null, null);
     const snap = report.snapshot;
     const elapsed = report.elapsed_s;
     const completed = snap.counters.completed;
@@ -543,8 +557,8 @@ fn writeResultsZon(gpa: std.mem.Allocator, io: Io, environ_map: *std.process.Env
     const now = Io.Timestamp.now(io, .real).toSeconds();
 
     var scenarios: std.ArrayList(ScenarioEntry) = .empty;
-    inline for (@typeInfo(@TypeOf(fig.scenarios)).@"struct".fields) |field| {
-        const s = @field(fig.scenarios, field.name);
+    inline for (@typeInfo(@TypeOf(fig.scenarios)).@"struct".field_names) |field_name| {
+        const s = @field(fig.scenarios, field_name);
         try scenarios.append(arena, .{
             .id = s.id,
             .label = s.label,

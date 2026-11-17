@@ -12,7 +12,8 @@ pub fn main() !void {
         .header_buffer_len = 1024,
         .body_buffer_len = 4096,
         .stack_size = 1024 * 1024,
-        .aio_queue_depth = shared_mod.connection_count,
+        // io_uring needs a power of two; zinc clamps this to 4095.
+        .aio_queue_depth = 2048,
     });
     defer z.deinit();
 
@@ -20,7 +21,6 @@ pub fn main() !void {
     try router.get("/", root);
     try router.get("/httpz", httpz);
     try router.get("/api/users", users);
-    try router.get("/api/users/:id", user);
 
     std.debug.print("Started on port {d}\n", .{shared_mod.port});
     try z.run();
@@ -36,16 +36,4 @@ fn httpz(ctx: *zinc.Context) anyerror!void {
 
 fn users(ctx: *zinc.Context) anyerror!void {
     try ctx.json(shared_mod.response.users, .{});
-}
-
-fn user(ctx: *zinc.Context) anyerror!void {
-    const id_str = if (ctx.getParam("id")) |p| p.value else "0";
-    const id = std.fmt.parseInt(u32, id_str, 10) catch 0;
-
-    if (id == 0 or id > shared_mod.response.users.len) {
-        try ctx.json(.{ .message = "Invalid ID" }, .{ .status = .bad_request });
-        return;
-    }
-
-    try ctx.json(shared_mod.response.users[id - 1], .{});
 }

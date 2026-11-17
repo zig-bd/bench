@@ -1,5 +1,5 @@
-# Zig 0.16 load-generator image (zrk). Built as zig_web_bench-bencher.
-ARG ZIG_VER=0.16.0
+# Zig 0.17 load-generator image (zrk). Built as zig_web_bench-bencher.
+ARG ZIG_VER=0.17.1
 
 FROM alpine:3.22 AS build
 ARG ZIG_VER

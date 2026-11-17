@@ -2,15 +2,15 @@
     .name = .bencher,
     .version = "0.1.0",
     .fingerprint = 0x36a898f030a7162b,
-    .minimum_zig_version = "0.16.0",
+    .minimum_zig_version = "0.17.1",
     .dependencies = .{
         .zrk = .{
-            .url = "git+https://github.com/zoxy-io/zrk?ref=main#916fa060bda0d80148310a88ee46d49e122e016c",
-            .hash = "zrk-1.1.1-WqdFO9QUBADM-VLxl9wu86oId06h4w2vDK3nV9eXdQuo",
+            .url = "git+https://github.com/zoxy-io/zrk?ref=v3.0.2#c3b61f409ce7223f41272f25f002c541d9f54ff5",
+            .hash = "zrk-3.0.2-WqdFO3z_DQAOd7pZc2yw3hzvUJ2GsDydESZPhyEteT_I",
         },
         .zio = .{
-            .url = "git+https://github.com/lalinsky/zio#a8a88c0e85ba87525ec9555aa409544873443142",
-            .hash = "zio-0.16.0-xHbVVGNDIwDYoZmY7GkL3RMCKuyc4JjK2hv_4TOBx8x2",
+            .url = "git+https://github.com/lalinsky/zio?ref=v0.20.1#c0a6b5877c9bbc71d2d2c0b3374ce7fa61a4ec12",
+            .hash = "zio-0.20.1-xHbVVI0wLwDgE2dXWDCWH0UfCQYEhnBYHs1Td12oAGeR",
         },
     },
     .paths = .{

@@ -8,7 +8,7 @@ pub fn Header(allocator: zx.Allocator) zx.Component {
                 Zig Web Servers
             </div>
             <div class="header-actions">
-                <SaveChartButton @rendering={.client} />
+                <SaveChartButton @client />
                 <a class="github-info" href={github_url} target="_blank" rel="noopener noreferrer" aria-label="GitHub repository">
                     <GitHubIcon />
                 </a>

@@ -2,7 +2,7 @@
     .name = .bench,
     .version = "0.1.0",
     .fingerprint = 0x66d8e32517b77e05,
-    .minimum_zig_version = "0.16.0",
+    .minimum_zig_version = "0.17.1",
     .paths = .{
         "build.zig",
         "build.zig.zon",

@@ -355,7 +355,7 @@ fn writeCompose(
         \\      context: ..
         \\      dockerfile: bench/docker/Dockerfile
         \\      args:
-        \\        ZIG_VER: "0.16.0"
+        \\        ZIG_VER: "0.17.1"
         \\    # zio/zrk needs io_uring (Docker Desktop / OrbStack)
         \\    privileged: true
         \\    deploy:

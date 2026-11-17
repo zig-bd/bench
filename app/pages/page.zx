@@ -2,11 +2,13 @@ fn fetchResults(ctx: zx.PageContext) !Result {
     const host = ctx.request.headers.get("host") orelse return error.ResultsFetchFailed;
     const url = try std.fmt.allocPrint(ctx.arena, "http://{s}/results.json", .{host});
 
-    var response = (try zx.fetch(zx.Io.blocking, ctx.arena, url, .{})) orelse return error.ResultsFetchFailed;
-    defer response.deinit();
-    if (!response.ok()) return error.ResultsFetchFailed;
+    var client: zx.http.Client = .{ .io = ctx.io, .allocator = ctx.arena };
+    defer client.deinit();
+    const response = client.fetch(.{ .url = url }) catch return error.ResultsFetchFailed;
+    defer response.deinit(ctx.arena);
+    if (response.status.class() != .success) return error.ResultsFetchFailed;
 
-    return zx.util.zxon.parse(Result, ctx.arena, try response.text(), .{});
+    return zx.util.zxon.parse(Result, ctx.arena, response.body, .{});
 }
 
 pub fn Page(ctx: zx.PageContext) !zx.Component {

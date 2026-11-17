@@ -1,6 +1,5 @@
-diff -ruN a/src/io/linux.zig b/src/io/linux.zig
---- a/src/io/linux.zig	2026-09-20 18:19:02
-+++ b/src/io/linux.zig	2026-09-21 00:21:44
+--- a/aio/src/io/linux.zig
++++ b/aio/src/io/linux.zig
 @@ -11,13 +11,14 @@
  const constants = @import("../constants.zig");
  const stdx = @import("../stdx.zig");
@@ -175,9 +174,8 @@ diff -ruN a/src/io/linux.zig b/src/io/linux.zig
      }
  
      /// Listen on the given TCP socket.
-diff -ruN a/src/io/windows.zig b/src/io/windows.zig
---- a/src/io/windows.zig	2026-09-20 18:19:02
-+++ b/src/io/windows.zig	2026-09-21 00:21:44
+--- a/aio/src/io/windows.zig
++++ b/aio/src/io/windows.zig
 @@ -4,7 +4,7 @@
  const log = std.log.scoped(.io);
  const constants = @import("../constants.zig");
@@ -187,9 +185,8 @@ diff -ruN a/src/io/windows.zig b/src/io/windows.zig
  
  const QueueType = @import("../queue.zig").QueueType;
  const Time = @import("../time.zig").Time;
-diff -ruN a/src/list.zig b/src/list.zig
---- a/src/list.zig	2026-09-20 18:19:02
-+++ b/src/list.zig	2026-09-21 00:21:44
+--- a/aio/src/list.zig
++++ b/aio/src/list.zig
 @@ -11,10 +11,10 @@
      comptime field_back_enum: std.meta.FieldEnum(Node),
      comptime field_next_enum: std.meta.FieldEnum(Node),
@@ -204,9 +201,8 @@ diff -ruN a/src/list.zig b/src/list.zig
  
      const field_back = @tagName(field_back_enum);
      const field_next = @tagName(field_next_enum);
-diff -ruN a/src/stdx.zig b/src/stdx.zig
---- a/src/stdx.zig	2026-09-20 18:19:02
-+++ b/src/stdx.zig	2026-09-21 00:21:44
+--- a/aio/src/stdx.zig
++++ b/aio/src/stdx.zig
 @@ -399,7 +399,7 @@
          assert(has_unique_representation(@TypeOf(value)));
      }
@@ -245,9 +241,8 @@ diff -ruN a/src/stdx.zig b/src/stdx.zig
      }
      return error.Unexpected;
  }
-diff -ruN a/src/time.zig b/src/time.zig
---- a/src/time.zig	2026-09-20 18:19:02
-+++ b/src/time.zig	2026-09-21 00:21:44
+--- a/aio/src/time.zig
++++ b/aio/src/time.zig
 @@ -103,7 +103,7 @@
          // https://github.com/ziglang/zig/pull/933#discussion_r656021295.
          var ts: posix.timespec = undefined;
@@ -266,3 +261,71 @@ diff -ruN a/src/time.zig b/src/time.zig
      }
  
      pub fn tick(_: *Time) void {}
+--- a/zinc/src/zinc/engine.zig
++++ b/zinc/src/zinc/engine.zig
+@@ -73,6 +73,10 @@
+     /// an in-flight marker, not an owning pointer — never free it directly.
+     write_buffer: ?[]u8 = null,
+ 
++    /// When true, close the socket after the response write finishes instead of
++    /// re-arming keep-alive reads. Set from `sendAsync` when `Connection: close`.
++    close_after_write: bool = false,
++
+     // Each connection has its own read buffer from the pool
+     read_buffer: ?[]u8 = null,
+ 
+@@ -705,6 +709,10 @@
+     // Inline send completed inside `handleConn`. Re-arm here so the arena is
+     // not reset while request/response objects on that arena are still live.
+     if (connection.write_buffer == null) {
++        if (connection.close_after_write) {
++            closeConnectionWorker(worker, connection);
++            return;
++        }
+         _ = connection.arena.reset(.{ .retain_with_limit = engine.arena_retain_limit });
+         startReadWorker(worker, connection) catch |err| {
+             std.log.err("Failed to continue reading: {}", .{err});
+@@ -733,6 +741,11 @@
+             return;
+         }
+         connection.write_buffer = null;
++    }
++
++    if (connection.close_after_write) {
++        closeConnectionWorker(worker, connection);
++        return;
+     }
+ 
+     _ = connection.arena.reset(.{ .retain_with_limit = engine.arena_retain_limit });
+--- a/zinc/src/zinc/posix_compat.zig
++++ b/zinc/src/zinc/posix_compat.zig
+@@ -47,7 +47,7 @@
+     const rc = system.socket(@intCast(domain), @intCast(filtered_type), @intCast(protocol));
+     if (rc >= 0) {
+         if (!sock_flags_in_type and extra_flags != 0) applyDescriptorFlags(rc, extra_flags);
+-        return rc;
++        return @intCast(rc);
+     }
+     return switch (errno(rc)) {
+         .ACCES => error.PermissionDenied,
+--- a/zinc/src/zinc/response.zig
++++ b/zinc/src/zinc/response.zig
+@@ -264,6 +264,7 @@
+         buf.appendSliceAssumeCapacity(content);
+     }
+ 
++    connection.close_after_write = !keep_alive;
+     try engine.startWrite(connection, buf.items);
+ }
+ 
+--- a/zinc/src/zinc/server.zig
++++ b/zinc/src/zinc/server.zig
+@@ -25,7 +25,7 @@
+ pub fn listen(address: Io.net.IpAddress, options: ListenOptions) !Server {
+     // Convert IpAddress to sockaddr for posix operations
+     // Use a larger buffer to accommodate both IPv4 and IPv6 (sockaddr.in6 is 28 bytes)
+-    var sockaddr_buffer: [128]u8 = undefined;
++    var sockaddr_buffer: [128]u8 align(@alignOf(posix.sockaddr)) = undefined;
+     var socklen: posix.socklen_t = undefined;
+     var family: posix.sa_family_t = undefined;
+     const sockaddr: *posix.sockaddr = @ptrCast(&sockaddr_buffer);
