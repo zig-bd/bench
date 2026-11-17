@@ -17,6 +17,8 @@ pub fn main(init: std.process.Init) !void {
             _ = try worker.get("/httpz", httpz);
             _ = try worker.get("/api/users", users);
             _ = try worker.get("/api/users/:id", user);
+            _ = try worker.post("/form", form);
+            _ = try worker.post("/upload", upload);
         }
     }.routes);
 
@@ -52,4 +54,38 @@ fn user(req: *uz.Request, res: *uz.Response) void {
 
     var scratch: [256]u8 = undefined;
     res.json_buf(shared_mod.response.users[id - 1], &scratch) catch {};
+}
+
+fn form(req: *uz.Request, res: *uz.Response) void {
+    const data = req.form() catch {
+        res.end_with_headers("400 Bad Request", "Content-Type: text/plain\r\n", "bad form") catch {};
+        return;
+    };
+    if (data.get("name") == null) {
+        res.end_with_headers("400 Bad Request", "Content-Type: text/plain\r\n", "missing name") catch {};
+        return;
+    }
+    res.text("OK") catch {};
+}
+
+fn upload(req: *uz.Request, res: *uz.Response) void {
+    var parser = req.multipart() catch {
+        res.end_with_headers("400 Bad Request", "Content-Type: text/plain\r\n", "bad multipart") catch {};
+        return;
+    };
+    var saw_file = false;
+    while (parser.next_part() catch {
+        res.end_with_headers("400 Bad Request", "Content-Type: text/plain\r\n", "bad part") catch {};
+        return;
+    }) |part| {
+        if (std.mem.eql(u8, part.name, "file") and part.filename != null) {
+            saw_file = true;
+            break;
+        }
+    }
+    if (!saw_file) {
+        res.end_with_headers("400 Bad Request", "Content-Type: text/plain\r\n", "missing file") catch {};
+        return;
+    }
+    res.text("OK") catch {};
 }

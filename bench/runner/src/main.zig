@@ -139,7 +139,7 @@ fn mainInner(init: std.process.Init) !void {
                         fw,
                         scenario.id,
                     });
-                    const one = try runOnce(gpa, io, fw, scenario.path, scenario.method);
+                    const one = try runOnce(gpa, io, fw, scenario.path, scenario.method, scenario.body, scenario.content_type);
                     if (is_warmup) {
                         std.log.info("warmup discard {s}/{s}: rps={d:.0}", .{ fw, scenario.id, one.rps });
                         continue;
@@ -455,13 +455,14 @@ fn average(dst: *ScenarioResult, runs: u32) void {
 }
 
 fn waitHealthy(io: Io, host: []const u8, port: u16, path: []const u8) !void {
+    _ = path;
+    const health_path = "/httpz";
     var attempt: u32 = 0;
     while (attempt < 90) : (attempt += 1) {
-        if (probe(io, host, port, path)) {
-            std.log.info("healthy http://{s}:{d}{s}", .{ host, port, path });
+        if (probe(io, host, port, health_path)) {
+            std.log.info("healthy http://{s}:{d}{s}", .{ host, port, health_path });
             return;
         }
-        // Compose already waited on /httpz; this is usually a quick confirm for the scenario path.
         try Io.sleep(io, Io.Duration.fromMilliseconds(200), .awake);
     }
     return error.FrameworkNotHealthy;
@@ -500,7 +501,15 @@ fn probe(io: Io, host: []const u8, port: u16, path: []const u8) bool {
     return line.len >= 12 and std.mem.startsWith(u8, line, "HTTP/1.") and std.mem.indexOf(u8, line, " 200") != null;
 }
 
-fn runOnce(gpa: std.mem.Allocator, io: Io, host: []const u8, path: []const u8, method: []const u8) !ScenarioResult {
+fn runOnce(
+    gpa: std.mem.Allocator,
+    io: Io,
+    host: []const u8,
+    path: []const u8,
+    method: []const u8,
+    body: []const u8,
+    content_type: []const u8,
+) !ScenarioResult {
     var arena_state = std.heap.ArenaAllocator.init(gpa);
     defer arena_state.deinit();
     const arena = arena_state.allocator();
@@ -508,6 +517,11 @@ fn runOnce(gpa: std.mem.Allocator, io: Io, host: []const u8, path: []const u8, m
     const url_str = try std.fmt.allocPrint(arena, "http://{s}:{d}{s}", .{ host, fig.port, path });
     const rate: u64 = fig.rate;
     const connections: u32 = fig.connections;
+
+    const headers: []const zrk.cli.Header = if (content_type.len == 0)
+        &.{}
+    else
+        &.{.{ .name = "Content-Type", .value = content_type }};
 
     var cfg: zrk.cli.Config = .{
         .threads = fig.threads,
@@ -518,6 +532,8 @@ fn runOnce(gpa: std.mem.Allocator, io: Io, host: []const u8, path: []const u8, m
         .timeout_ns = fig.timeout_s * std.time.ns_per_s,
         .interval_ns = 1 * std.time.ns_per_s,
         .method = method,
+        .body = body,
+        .headers = headers,
         .url = try zrk.cli.parseUrl(url_str),
     };
 
@@ -589,13 +605,6 @@ fn writeResultsZon(gpa: std.mem.Allocator, io: Io, environ_map: *std.process.Env
             .method = s.method,
         });
     }
-    try scenarios.append(arena, .{
-        .id = "file_upload",
-        .label = "File Upload",
-        .description = "Multipart upload throughput (coming soon)",
-        .path = "/upload",
-        .method = "POST",
-    });
 
     // Platforms that have at least one run, then placeholders for the rest.
     var seen: [known_platforms.len]bool = @splat(false);

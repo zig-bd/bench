@@ -1,7 +1,7 @@
 (function () {
   var root = document.getElementById("bench-root");
   if (!root) return;
-  var scenario = root.getAttribute("data-default-scenario") || "plaintext";
+  var scenario = root.getAttribute("data-default-scenario") || "text";
   var os = root.getAttribute("data-default-os") || "linux";
   var arch = root.getAttribute("data-default-arch") || "aarch64";
 

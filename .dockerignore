@@ -3,3 +3,7 @@ zig-out
 frameworks/zinc/deps
 frameworks/*/.zig-cache
 frameworks/*/zig-out
+frameworks/*/zig-pkg
+bench/runner/.zig-cache
+bench/runner/zig-out
+bench/runner/zig-pkg

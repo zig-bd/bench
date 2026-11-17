@@ -9,6 +9,10 @@ pub fn main(init: std.process.Init) !void {
         .address = .all(shared_mod.port),
         .thread_pool = .{ .count = shared_mod.thread_count },
         .workers = .{ .count = shared_mod.worker_count, .max_conn = shared_mod.connection_count },
+        .request = .{
+            .max_form_count = 8,
+            .max_multiform_count = 8,
+        },
     }, {});
     defer {
         server.stop();
@@ -20,6 +24,8 @@ pub fn main(init: std.process.Init) !void {
     router.get("/httpz", httpz_endpoint, .{});
     router.get("/api/users", users, .{});
     router.get("/api/users/:id", user, .{});
+    router.post("/form", form, .{});
+    router.post("/upload", upload, .{});
 
     std.debug.print("Started on port {d}\n", .{shared_mod.port});
     try server.listen();
@@ -50,4 +56,31 @@ fn user(req: *httpz.Request, res: *httpz.Response) !void {
 
     res.status = 200;
     try res.json(shared_mod.response.users[id - 1], .{});
+}
+
+fn form(req: *httpz.Request, res: *httpz.Response) !void {
+    const data = try req.formData();
+    if (data.get("name") == null) {
+        res.status = 400;
+        res.body = "missing name";
+        return;
+    }
+    res.status = 200;
+    res.body = "OK";
+}
+
+fn upload(req: *httpz.Request, res: *httpz.Response) !void {
+    const data = try req.multiFormData();
+    const file = data.get("file") orelse {
+        res.status = 400;
+        res.body = "missing file";
+        return;
+    };
+    if (file.filename == null) {
+        res.status = 400;
+        res.body = "missing filename";
+        return;
+    }
+    res.status = 200;
+    res.body = "OK";
 }

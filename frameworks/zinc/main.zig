@@ -21,6 +21,8 @@ pub fn main() !void {
     try router.get("/", root);
     try router.get("/httpz", httpz);
     try router.get("/api/users", users);
+    try router.post("/form", form);
+    try router.post("/upload", upload);
 
     std.debug.print("Started on port {d}\n", .{shared_mod.port});
     try z.run();
@@ -36,4 +38,22 @@ fn httpz(ctx: *zinc.Context) anyerror!void {
 
 fn users(ctx: *zinc.Context) anyerror!void {
     try ctx.json(shared_mod.response.users, .{});
+}
+
+fn form(ctx: *zinc.Context) anyerror!void {
+    const body = ctx.getBody() orelse "";
+    if (std.mem.indexOf(u8, body, "name=") == null) {
+        try ctx.text("missing name", .{});
+        return;
+    }
+    try ctx.text("OK", .{});
+}
+
+fn upload(ctx: *zinc.Context) anyerror!void {
+    const body = ctx.getBody() orelse "";
+    if (std.mem.indexOf(u8, body, "filename=") == null) {
+        try ctx.text("missing file", .{});
+        return;
+    }
+    try ctx.text("OK", .{});
 }

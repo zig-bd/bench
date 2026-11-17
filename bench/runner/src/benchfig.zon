@@ -11,11 +11,13 @@
     .frameworks = .{ "httpz", "zzz", "dusty-std", "dusty-zio", "std", "uwebzockets", "zinc" },
     .scenarios = .{
         .{
-            .id = "plaintext",
-            .label = "Plaintext",
+            .id = "text",
+            .label = "Text",
             .description = "Minimal OK response - peak request throughput",
             .path = "/httpz",
             .method = "GET",
+            .body = "",
+            .content_type = "",
         },
         .{
             .id = "json",
@@ -23,6 +25,26 @@
             .description = "Serialize a small JSON user list",
             .path = "/api/users",
             .method = "GET",
+            .body = "",
+            .content_type = "",
+        },
+        .{
+            .id = "form",
+            .label = "Form",
+            .description = "Parse application/x-www-form-urlencoded POST body",
+            .path = "/form",
+            .method = "POST",
+            .body = "name=bench&value=zig",
+            .content_type = "application/x-www-form-urlencoded",
+        },
+        .{
+            .id = "upload",
+            .label = "Upload",
+            .description = "Parse multipart/form-data file upload",
+            .path = "/upload",
+            .method = "POST",
+            .body = "------benchboundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"bench.txt\"\r\nContent-Type: text/plain\r\n\r\nhello zig bench\r\n------benchboundary--\r\n",
+            .content_type = "multipart/form-data; boundary=----benchboundary",
         },
     },
 }

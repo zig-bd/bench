@@ -3,6 +3,7 @@ const shared_mod = @import("shared_mod");
 
 const zzz = @import("zzz");
 const http = zzz.http;
+const form = http.form;
 const Secsock = zzz.Secsock;
 const tardy = zzz.tardy;
 const Tardy = tardy.Tardy(.auto);
@@ -22,6 +23,8 @@ pub fn main(init: std.process.Init) !void {
     var router: http.Router = try .init(init.gpa, &.{
         Route.init("/httpz").get({}, httpz).layer(),
         Route.init("/api/users").get({}, users).layer(),
+        Route.init("/form").post({}, formSubmit).layer(),
+        Route.init("/upload").post({}, upload).layer(),
     }, .{});
     defer router.deinit(init.gpa);
 
@@ -72,5 +75,30 @@ fn users(ctx: *const http.Context, _: void) !http.Respond {
         .status = .OK,
         .mime = .JSON,
         .body = body,
+    });
+}
+
+const FormFields = struct {
+    name: []const u8,
+    value: []const u8,
+};
+
+fn formSubmit(ctx: *const http.Context, _: void) !http.Respond {
+    const fields = try form.Form(FormFields).parse(ctx);
+    _ = fields;
+    return ctx.response.apply(.{
+        .status = .OK,
+        .mime = .TEXT,
+        .body = "OK",
+    });
+}
+
+fn upload(ctx: *const http.Context, _: void) !http.Respond {
+    const body = ctx.request.body orelse return error.BodyEmpty;
+    if (std.mem.indexOf(u8, body, "filename=") == null) return error.MissingFile;
+    return ctx.response.apply(.{
+        .status = .OK,
+        .mime = .TEXT,
+        .body = "OK",
     });
 }

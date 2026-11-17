@@ -71,6 +71,33 @@ fn handleConnection(io: std.Io, stream: net.Stream) void {
                 std.debug.print("Error responding: {}\n", .{err});
                 return;
             };
+        } else if (std.mem.eql(u8, path, "/form") or std.mem.eql(u8, path, "/upload")) {
+            // std.http has no form/multipart helpers; read the body and do light validation.
+            var read_buf: [512]u8 = undefined;
+            var body_storage: [2048]u8 = undefined;
+            var fba = std.heap.FixedBufferAllocator.init(&body_storage);
+            const body_reader = req.readerExpectNone(&read_buf);
+            const body = body_reader.allocRemaining(fba.allocator(), .limited(body_storage.len)) catch {
+                std.debug.print("Error reading body\n", .{});
+                return;
+            };
+
+            if (std.mem.eql(u8, path, "/form")) {
+                if (std.mem.indexOf(u8, body, "name=") == null) {
+                    req.respond("missing name", .{ .status = .bad_request }) catch return;
+                    if (!req.head.keep_alive) break;
+                    continue;
+                }
+            } else if (std.mem.indexOf(u8, body, "filename=") == null) {
+                req.respond("missing file", .{ .status = .bad_request }) catch return;
+                if (!req.head.keep_alive) break;
+                continue;
+            }
+
+            req.respond("OK", .{}) catch |err| {
+                std.debug.print("Error responding: {}\n", .{err});
+                return;
+            };
         } else {
             req.respond("OK", .{}) catch |err| {
                 std.debug.print("Error responding: {}\n", .{err});

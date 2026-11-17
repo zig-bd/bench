@@ -29,6 +29,8 @@ pub fn main(init: std.process.Init) !void {
     server.router.get("/httpz", plaintext);
     server.router.get("/api/users", users);
     server.router.get("/api/users/:id", user);
+    server.router.post("/form", form);
+    server.router.post("/upload", upload);
 
     std.debug.print("Started on port {d}\n", .{shared_mod.port});
     try server.run();
@@ -60,4 +62,31 @@ fn user(req: *http.Request, res: *http.Response) !void {
 
     res.status = .ok;
     try res.json(shared_mod.response.users[id - 1], .{});
+}
+
+fn form(req: *http.Request, res: *http.Response) !void {
+    const data = try req.formData();
+    if (data.get("name") == null) {
+        res.status = .bad_request;
+        res.body = "missing name";
+        return;
+    }
+    res.status = .ok;
+    res.body = "OK";
+}
+
+fn upload(req: *http.Request, res: *http.Response) !void {
+    const data = try req.multiFormData();
+    const file = data.get("file") orelse {
+        res.status = .bad_request;
+        res.body = "missing file";
+        return;
+    };
+    if (file.filename == null) {
+        res.status = .bad_request;
+        res.body = "missing filename";
+        return;
+    }
+    res.status = .ok;
+    res.body = "OK";
 }
