@@ -6,7 +6,7 @@ Benchmarks Zig web server libraries for performance.
 
 ```bash
 bash bench/run.sh              # all frameworks
-bash bench/run.sh httpz zap    # specific frameworks
+bash bench/run.sh httpz zzz    # specific frameworks
 ```
 
 Results will be written to `app/results.zon`.

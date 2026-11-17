@@ -120,7 +120,7 @@ fn languageLabel(allocator: std.mem.Allocator, frameworks: []const Frameworks.Fr
             return std.fmt.allocPrint(allocator, "Zig {s}", .{fw.version}) catch unreachable;
         }
     }
-    return "Zig 0.16.0";
+    return "Zig 0.17.0";
 }
 
 fn versionLabel(allocator: std.mem.Allocator, version: []const u8) []const u8 {
@@ -154,7 +154,7 @@ fn metaFor(metas: []const FrameworkMeta, id: []const u8) FrameworkMeta {
         .name = id,
         .version = "0",
         .version_label = "v0",
-        .language_label = if (metas.len > 0) metas[0].language_label else "Zig 0.16.0",
+        .language_label = if (metas.len > 0) metas[0].language_label else "Zig 0.17.0",
         .repo_url = "#",
     };
 }

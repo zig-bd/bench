@@ -2,16 +2,16 @@
     .name = .bench_zzz,
     .version = "0.0.0",
     .fingerprint = 0x5f349ebf1157d7ac,
-    .minimum_zig_version = "0.16.0",
+    .minimum_zig_version = "0.17.0",
     .dependencies = .{
         .zzz = .{
-            .url = "git+https://github.com/tardy-org/zzz?ref=v0.3.2#2f437b635ca8d8faa8d3b187b05423fc942f57a8",
-            .hash = "zzz-0.3.2-4HoaJu9WAgCcagVKv9jhG9Cvzpu28l7lP9nDf9xNHLxV",
+            .url = "git+https://github.com/tardy-org/zzz?ref=v0.3.3#56bae659fd69f1cbd4201fb552f5adae4c51fd9c",
+            .hash = "zzz-0.3.3-4HoaJlJUAgCw2_i0zpvhMo5T5Oz9KGjtNrmep0GjyXUM",
         },
     },
     .paths = .{ "build.zig", "build.zig.zon", "main.zig" },
     .meta = .{
-            .version = "0.3.2",
+            .version = "0.3.3",
             .repo_url = "https://github.com/tardy-org/zzz",
             .privileged = true,
             .comparison = .{

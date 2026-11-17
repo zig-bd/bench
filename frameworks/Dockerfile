@@ -1,5 +1,5 @@
 # Shared framework image. Build args: FRAMEWORK, BINARY [, ZIG_VER]
-ARG ZIG_VER=0.16.0
+ARG ZIG_VER=0.17.1
 ARG FRAMEWORK
 ARG BINARY
 

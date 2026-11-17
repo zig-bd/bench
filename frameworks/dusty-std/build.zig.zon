@@ -2,7 +2,7 @@
     .name = .bench_dusty_std,
     .version = "0.1.0",
     .fingerprint = 0xa45f4cb2827cfedc,
-    .minimum_zig_version = "0.16.0",
+    .minimum_zig_version = "0.17.0",
     .dependencies = .{
         .dusty = .{
             .url = "git+https://github.com/lalinsky/dusty?ref=v0.6.0#102b0c76eee2ed9c0ea3fff199473a7d731eb258",
@@ -16,7 +16,7 @@
     },
     .meta = .{
         .label = "dusty+std",
-        .version = "0.3.0",
+        .version = "0.6.0",
         .repo_url = "https://github.com/lalinsky/dusty",
         .comparison = .{
             .{

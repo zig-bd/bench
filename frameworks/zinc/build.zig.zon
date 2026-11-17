@@ -13,6 +13,7 @@
     .meta = .{
             .version = "0.3.0-beta.1",
             .repo_url = "https://github.com/zon-dev/zinc",
+            .disabled = true,
             .privileged = true,
             .comparison = .{
                 .{

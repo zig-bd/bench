@@ -2,11 +2,11 @@
     .name = .bench_uwebzockets,
     .version = "0.1.0",
     .fingerprint = 0x38568478a602762e,
-    .minimum_zig_version = "0.16.0",
+    .minimum_zig_version = "0.17.0",
     .dependencies = .{
         .uWebZockets = .{
-            .url = "git+https://github.com/farbenbuilds/uWebZockets?ref=v1.8.0#d94b4e546000455f2ca680d07cb61d032034d5ec",
-            .hash = "uWebZockets-1.8.0-SD3SPCtoJgB2t5E5ldRsnhw2iSXJXaEU03GScHvbL_8s",
+            .url = "git+https://github.com/farbenbuilds/uWebZockets?ref=v2.2.0#70a3e488bc6a754e63fd6f59690f68d9ca6e7d45",
+            .hash = "uWebZockets-2.2.0-SD3SPPlTMwCNdUkFCg-LNAC8U5jBjOQ4wd1vhbZhx6Lv",
         },
     },
     .paths = .{
@@ -16,8 +16,9 @@
     },
     .meta = .{
         .label = "uWebZockets",
-        .version = "1.8.0",
+        .version = "2.2.0",
         .repo_url = "https://github.com/farbenbuilds/uWebZockets",
+        .disabled = true,
         .comparison = .{
             .{
                 .category = "Core Features",

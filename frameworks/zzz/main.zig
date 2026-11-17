@@ -1,24 +1,38 @@
 const std = @import("std");
-const log = std.log.scoped(.@"examples/basic");
-
-const zzz = @import("zzz");
-const http = zzz.HTTP;
 const shared_mod = @import("shared_mod");
 
+const zzz = @import("zzz");
+const http = zzz.http;
+const Secsock = zzz.Secsock;
 const tardy = zzz.tardy;
 const Tardy = tardy.Tardy(.auto);
-const Runtime = tardy.Runtime;
-const Socket = tardy.Socket;
-
-const Server = http.Server;
-const Router = http.Router;
-const Context = http.Context;
-const Route = http.Route;
-const Respond = http.Respond;
+const Route = http.Router.Route;
 
 pub fn main(init: std.process.Init) !void {
     const host: []const u8 = "0.0.0.0";
     const port: u16 = shared_mod.port;
+
+    const transport: Secsock.Unsecured = .empty;
+    const tcp = try transport.tcp(init.gpa, .{
+        .host = host,
+        .port = port,
+    });
+    defer tcp.deinit(init.gpa);
+
+    var router: http.Router = try .init(init.gpa, &.{
+        Route.init("/httpz").get({}, httpz).layer(),
+        Route.init("/api/users").get({}, users).layer(),
+    }, .{});
+    defer router.deinit(init.gpa);
+
+    const EntryParams = struct {
+        router: *const http.Router,
+        tls: *const Secsock,
+    };
+    const params: EntryParams = .{
+        .router = &router,
+        .tls = &tcp,
+    };
 
     var t: Tardy = try .init(init.gpa, init.io, .{
         .threading = .{ .multi = shared_mod.thread_count },
@@ -27,53 +41,36 @@ pub fn main(init: std.process.Init) !void {
     });
     defer t.deinit();
 
-    var router: Router = try .init(init.gpa, &.{
-        Route.init("/httpz").get({}, httpz).layer(),
-        Route.init("/api/users").get({}, users).layer(),
-    }, .{});
-    defer router.deinit(init.gpa);
-
-    var socket: Socket = try .init(init.io, .{
-        .tcp = .{ .host = host, .port = port },
-    });
-    defer socket.close_blocking();
-    try socket.bind();
-    try socket.listen(shared_mod.connection_count);
-
-    const EntryParams = struct {
-        router: *const Router,
-        socket: Socket,
-    };
-
     try t.entry(
-        EntryParams{ .router = &router, .socket = socket },
+        params,
         struct {
-            fn entry(rt: *Runtime, p: EntryParams) !void {
-                var server: Server = .init(.{
-                    .stack_size = 1024 * 1024 * 4,
-                    .socket_buffer_bytes = 1024 * 2,
-                    .keepalive_count_max = null,
-                    .connection_count_max = shared_mod.connection_count / shared_mod.thread_count,
+            fn entry(rt: *tardy.Runtime, p: EntryParams) !void {
+                var server: http.Server = .init(.{
+                    .stack_size = .@"4MiB",
+                    .socket_buffer_size = .@"2KiB",
+                    .max_keepalive_count = null,
+                    .max_connection_count = shared_mod.connection_count / shared_mod.thread_count,
                 });
-                try server.serve(rt, p.router, .{ .normal = p.socket });
+                defer server.deinit();
+                try server.serve(rt, p.router, p.tls);
             }
         }.entry,
     );
 }
 
-fn httpz(ctx: *const Context, _: void) !Respond {
+fn httpz(ctx: *const http.Context, _: void) !http.Respond {
     return ctx.response.apply(.{
         .status = .OK,
-        .mime = http.Mime.TEXT,
+        .mime = .TEXT,
         .body = "OK",
     });
 }
 
-fn users(ctx: *const Context, _: void) !Respond {
-    const body = try std.json.Stringify.valueAlloc(ctx.allocator, shared_mod.response.users, .{});
+fn users(ctx: *const http.Context, _: void) !http.Respond {
+    const body = try std.json.Stringify.valueAlloc(ctx.arena, shared_mod.response.users, .{});
     return ctx.response.apply(.{
         .status = .OK,
-        .mime = http.Mime.JSON,
+        .mime = .JSON,
         .body = body,
     });
 }
