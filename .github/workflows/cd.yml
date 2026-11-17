@@ -57,7 +57,7 @@ jobs:
       - name: Build Site
         run: |
           test -f app/results.zon
-          zig build zx -- export
+          zig build zx -- build --static
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

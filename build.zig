@@ -22,6 +22,7 @@ pub fn build(b: *std.Build) !void {
                     .install_subdir = "bindings",
                 },
             },
+            .server = .{ .backend = .std },
         },
     });
 
