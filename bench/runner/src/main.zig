@@ -112,37 +112,52 @@ fn mainInner(init: std.process.Init) !void {
         };
         if (scenario_wanted) {
             for (frameworks) |fw| {
-            waitHealthy(io, fw, fig.port, scenario.path) catch |err| {
-                std.log.err("unhealthy before {s}/{s}: {s} - keeping {d} prior run(s)", .{
+                waitHealthy(io, fw, fig.port, scenario.path) catch |err| {
+                    std.log.err("unhealthy before {s}/{s}: {s} - keeping {d} prior run(s)", .{
+                        fw,
+                        scenario.id,
+                        @errorName(err),
+                        results.items.len,
+                    });
+                    // Persist what we have so a wedged server does not discard earlier scenarios.
+                    if (results.items.len > 0) {
+                        try writePartial(gpa, io, init.environ_map, out_path, results.items);
+                        std.log.info("wrote partial for {s} ({d} runs)", .{ fw, results.items.len });
+                    }
+                    return err;
+                };
+
+                var run_i: u32 = 0;
+                var scored: u32 = 0;
+                var sum = zeroResult(fw, scenario.id, platform_id);
+                while (run_i < fig.runs) : (run_i += 1) {
+                    const is_warmup = run_i < fig.warmup_runs;
+                    std.log.info("{s} {d}/{d}: {s} {s}", .{
+                        if (is_warmup) "warmup" else "run",
+                        run_i + 1,
+                        fig.runs,
+                        fw,
+                        scenario.id,
+                    });
+                    const one = try runOnce(gpa, io, fw, scenario.path, scenario.method);
+                    if (is_warmup) {
+                        std.log.info("warmup discard {s}/{s}: rps={d:.0}", .{ fw, scenario.id, one.rps });
+                        continue;
+                    }
+                    accumulate(&sum, one);
+                    scored += 1;
+                }
+                if (scored == 0) return error.NoScoredRuns;
+                average(&sum, scored);
+                sum.platform = platform_id;
+                try results.append(gpa, sum);
+                std.log.info("done {s}/{s}: rps={d:.0} p99={d:.2}ms (avg of {d})", .{
                     fw,
                     scenario.id,
-                    @errorName(err),
-                    results.items.len,
+                    sum.rps,
+                    sum.latency_p99_s * 1000.0,
+                    scored,
                 });
-                // Persist what we have so a wedged server does not discard earlier scenarios.
-                if (results.items.len > 0) {
-                    try writePartial(gpa, io, init.environ_map, out_path, results.items);
-                    std.log.info("wrote partial for {s} ({d} runs)", .{ fw, results.items.len });
-                }
-                return err;
-            };
-
-            var run_i: u32 = 0;
-            var sum = zeroResult(fw, scenario.id, platform_id);
-            while (run_i < fig.runs) : (run_i += 1) {
-                std.log.info("run {d}/{d}: {s} {s}", .{ run_i + 1, fig.runs, fw, scenario.id });
-                const one = try runOnce(gpa, io, fw, scenario.path, scenario.method);
-                accumulate(&sum, one);
-            }
-            average(&sum, fig.runs);
-            sum.platform = platform_id;
-            try results.append(gpa, sum);
-            std.log.info("done {s}/{s}: rps={d:.0} p99={d:.2}ms", .{
-                fw,
-                scenario.id,
-                sum.rps,
-                sum.latency_p99_s * 1000.0,
-            });
             }
         }
     }
@@ -195,9 +210,11 @@ const PlatformEntry = struct {
 
 const ConfigEntry = struct {
     runs: u32 = 0,
+    warmup_runs: u32 = 0,
     connections: u32 = 0,
     threads: u32 = 0,
     duration_s: u32 = 0,
+    closed: bool = false,
     rate: u64 = 0,
     port: u16 = 0,
 };
@@ -387,7 +404,6 @@ fn splitCsv(gpa: std.mem.Allocator, raw: []const u8) ![]const []const u8 {
     return try list.toOwnedSlice(gpa);
 }
 
-
 fn zeroResult(fw: []const u8, scenario: []const u8, platform: []const u8) ScenarioResult {
     return .{
         .framework = fw,
@@ -402,7 +418,7 @@ fn zeroResult(fw: []const u8, scenario: []const u8, platform: []const u8) Scenar
         .latency_p95_s = 0,
         .latency_p99_s = 0,
         .achieved_rate = 0,
-        .target_rate = @floatFromInt(fig.rate),
+        .target_rate = if (fig.closed) 0 else @floatFromInt(fig.rate),
         .error_rate = 0,
         .requests = 0,
     };
@@ -498,6 +514,7 @@ fn runOnce(gpa: std.mem.Allocator, io: Io, host: []const u8, path: []const u8, m
         .connections = connections,
         .duration_ns = fig.duration_s * std.time.ns_per_s,
         .rate = rate,
+        .closed = fig.closed,
         .timeout_ns = fig.timeout_s * std.time.ns_per_s,
         .interval_ns = 1 * std.time.ns_per_s,
         .method = method,
@@ -511,7 +528,12 @@ fn runOnce(gpa: std.mem.Allocator, io: Io, host: []const u8, path: []const u8, m
     const failures = snap.counters.socketErrors() + snap.counters.deadline_errors + snap.counters.status_errors;
     const attempts = completed + failures;
     const success_rate: f64 = if (attempts == 0) 0 else @as(f64, @floatFromInt(completed)) / @as(f64, @floatFromInt(attempts));
-    const rps: f64 = if (elapsed <= 0) 0 else @as(f64, @floatFromInt(completed)) / elapsed;
+    const rps: f64 = if (fig.closed and report.end_rate > 0)
+        report.end_rate
+    else if (elapsed <= 0)
+        0
+    else
+        @as(f64, @floatFromInt(completed)) / elapsed;
 
     // Histogram values are microseconds.
     const p50_us = snap.hist.valueAtPercentile(50);
@@ -533,7 +555,7 @@ fn runOnce(gpa: std.mem.Allocator, io: Io, host: []const u8, path: []const u8, m
         .latency_p95_s = @as(f64, @floatFromInt(p95_us)) / 1_000_000.0,
         .latency_p99_s = @as(f64, @floatFromInt(p99_us)) / 1_000_000.0,
         .achieved_rate = rps,
-        .target_rate = @floatFromInt(rate),
+        .target_rate = if (fig.closed) rps else @floatFromInt(rate),
         .error_rate = zrk.report.errorRate(snap.counters),
         .requests = completed,
     };
@@ -607,9 +629,11 @@ fn writeResultsZon(gpa: std.mem.Allocator, io: Io, environ_map: *std.process.Env
             .mode = "docker",
             .config = .{
                 .runs = fig.runs,
+                .warmup_runs = fig.warmup_runs,
                 .connections = fig.connections,
                 .threads = fig.threads,
                 .duration_s = fig.duration_s,
+                .closed = fig.closed,
                 .rate = fig.rate,
                 .port = fig.port,
             },
@@ -677,4 +701,3 @@ fn asciiLower(gpa: std.mem.Allocator, s: []const u8) ![]u8 {
     }
     return out;
 }
-

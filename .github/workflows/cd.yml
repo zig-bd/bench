@@ -1,16 +1,6 @@
 name: pages
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "app/**"
-      - "frameworks/**"
-      - "build.zig"
-      - "build.zig.zon"
-      - ".github/workflows/cd.yml"
-
   workflow_dispatch:
 
   workflow_call:
@@ -44,6 +34,13 @@ jobs:
           name: ${{ inputs.results_artifact }}
           path: app
 
+      - name: Require results.zon
+        run: |
+          if [ ! -f app/results.zon ]; then
+            echo "error: app/results.zon missing — run the bench workflow (or pass results_artifact)" >&2
+            exit 1
+          fi
+
       - name: Setup Zig
         uses: mlugg/setup-zig@v2
         with:
@@ -55,9 +52,7 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Build Site
-        run: |
-          test -f app/results.zon
-          zig build zx -- build --static
+        run: zig build zx -- build --static
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

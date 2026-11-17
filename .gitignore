@@ -9,6 +9,7 @@ bench/runner/.zig-cache/
 bench/runner/zig-out/
 bench/runner/zig-pkg/
 app/.bench-*.zon
+app/results.zon
 frameworks/*/.zig-cache/
 frameworks/*/zig-out/
 frameworks/*/zig-pkg/

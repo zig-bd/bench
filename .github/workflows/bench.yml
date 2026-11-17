@@ -274,6 +274,7 @@ jobs:
       - name: Collect partials into app/
         run: |
           mkdir -p app
+          rm -f app/results.zon app/.bench-*.zon
           find _partials -type f -name '.bench-*.zon' -print -exec cp -v {} app/ \;
           ls -la app/.bench-*.zon || {
             echo "No platform partials found - cannot merge"
